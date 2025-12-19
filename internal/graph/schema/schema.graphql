@@ -1,0 +1,441 @@
+# ============================================================================
+# Oracle DBA Platform - GraphQL Schema
+# Purpose: Define complete API surface with RBAC enforcement
+# ============================================================================
+
+# ============================================================================
+# AUTHENTICATION & AUTHORIZATION TYPES
+# ============================================================================
+
+type User {
+  id: ID!
+  username: String!
+  email: String!
+  fullName: String
+  isActive: Boolean!
+  roles: [Role!]!
+  lastLogin: Time
+  createdAt: Time!
+}
+
+type Role {
+  id: ID!
+  name: String!
+  description: String!
+  permissions: [Permission!]!
+}
+
+type Permission {
+  id: ID!
+  code: String!
+  description: String!
+}
+
+type AuthPayload {
+  token: String!
+  user: User!
+  expiresAt: Time!
+}
+
+# ============================================================================
+# ORACLE SESSION MONITORING TYPES
+# ============================================================================
+
+type OracleSession {
+  sid: Int!
+  serial: Int!
+  username: String
+  schemaName: String
+  osUser: String
+  machine: String
+  program: String
+  status: SessionStatus!
+  sqlId: String
+  sqlText: String
+  logonTime: Time
+  lastCallSeconds: Int!
+  blockingSession: Int
+  waitClass: String
+  event: String
+  secondsInWait: Int
+}
+
+enum SessionStatus {
+  ACTIVE
+  INACTIVE
+  KILLED
+}
+
+type SessionSummary {
+  totalSessions: Int!
+  activeSessions: Int!
+  inactiveSessions: Int!
+  blockedSessions: Int!
+  bySchema: [SessionsBySchema!]!
+}
+
+type SessionsBySchema {
+  schemaName: String!
+  total: Int!
+  active: Int!
+  inactive: Int!
+}
+
+# ============================================================================
+# LOCK & BLOCKING TYPES
+# ============================================================================
+
+type BlockingSession {
+  blockingSid: Int!
+  blockingSerial: Int!
+  blockingUser: String
+  blockingSchema: String
+  blockingStatus: SessionStatus!
+  blockingSqlId: String
+  blockingSqlText: String
+  blockedSid: Int!
+  blockedSerial: Int!
+  blockedUser: String
+  blockedSchema: String
+  blockedWaitClass: String
+  blockedEvent: String
+  blockedDurationSeconds: Int!
+  blockedSqlText: String
+}
+
+type LockInfo {
+  sid: Int!
+  serial: Int!
+  username: String
+  schemaName: String
+  lockType: String!
+  lockMode: String!
+  lockRequest: String
+  objectOwner: String
+  objectName: String
+  objectType: String
+  blockingSession: Int
+}
+
+# ============================================================================
+# TABLESPACE MONITORING TYPES
+# ============================================================================
+
+type Tablespace {
+  name: String!
+  totalSizeMb: Float!
+  usedSizeMb: Float!
+  freeSizeMb: Float!
+  usagePercentage: Float!
+  status: String!
+  contents: TablespaceContents!
+  datafileCount: Int!
+}
+
+enum TablespaceContents {
+  PERMANENT
+  TEMPORARY
+  UNDO
+}
+
+type TablespaceMetric {
+  id: ID!
+  tablespaceName: String!
+  totalSizeMb: Float!
+  usedSizeMb: Float!
+  freeSizeMb: Float!
+  usagePercentage: Float!
+  capturedAt: Time!
+}
+
+type TablespaceGrowth {
+  tablespaceName: String!
+  dataPoints: [TablespaceMetric!]!
+  growthRateMbPerDay: Float
+}
+
+# ============================================================================
+# QUERY PERFORMANCE TYPES
+# ============================================================================
+
+type SqlPerformance {
+  sqlId: String!
+  sqlText: String!
+  schemaName: String
+  parsingSchema: String
+  executions: Int!
+  elapsedTimeMs: Float!
+  avgElapsedMs: Float!
+  cpuTimeMs: Float!
+  avgCpuMs: Float!
+  diskReads: Int!
+  bufferGets: Int!
+  rowsProcessed: Int!
+  firstLoadTime: Time
+  lastActiveTime: Time
+}
+
+type SqlMetric {
+  id: ID!
+  sqlId: String!
+  sqlText: String!
+  schemaName: String
+  executions: Int!
+  elapsedTimeMs: Float!
+  cpuTimeMs: Float!
+  diskReads: Int!
+  bufferGets: Int!
+  rowsProcessed: Int!
+  capturedAt: Time!
+}
+
+# ============================================================================
+# SCHEMA MONITORING TYPES
+# ============================================================================
+
+type SchemaInfo {
+  schemaName: String!
+  totalObjects: Int!
+  tableCount: Int!
+  indexCount: Int!
+  viewCount: Int!
+  procedureCount: Int!
+  functionCount: Int!
+  packageCount: Int!
+}
+
+type InvalidObject {
+  owner: String!
+  objectName: String!
+  objectType: String!
+  status: String!
+  lastDdlTime: Time
+  createdDate: Time
+}
+
+type SchemaChange {
+  owner: String!
+  objectName: String!
+  objectType: String!
+  createdDate: Time!
+  lastModified: Time!
+  status: String!
+}
+
+# ============================================================================
+# DATABASE HEALTH TYPES
+# ============================================================================
+
+type DatabaseInstance {
+  instanceName: String!
+  hostName: String!
+  version: String!
+  startupTime: Time!
+  status: String!
+  databaseStatus: String!
+  instanceRole: String!
+  uptimeDays: Float!
+}
+
+type DatabaseSize {
+  totalSizeGb: Float!
+  usedSizeGb: Float!
+  freeSizeGb: Float!
+  usagePercentage: Float!
+}
+
+# ============================================================================
+# AUDIT LOG TYPES
+# ============================================================================
+
+type AuditLog {
+  id: ID!
+  userId: ID
+  username: String!
+  action: String!
+  resourceType: String!
+  resourceId: String
+  oracleSchema: String
+  status: AuditStatus!
+  ipAddress: String
+  userAgent: String
+  requestPayload: String
+  responsePayload: String
+  errorMessage: String
+  durationMs: Int
+  timestamp: Time!
+}
+
+enum AuditStatus {
+  SUCCESS
+  FAILURE
+  DENIED
+}
+
+# ============================================================================
+# INPUT TYPES
+# ============================================================================
+
+input LoginInput {
+  username: String!
+  password: String!
+}
+
+input CreateUserInput {
+  username: String!
+  email: String!
+  password: String!
+  fullName: String
+  roleIds: [ID!]!
+}
+
+input UpdateUserInput {
+  userId: ID!
+  email: String
+  fullName: String
+  isActive: Boolean
+  roleIds: [ID!]
+}
+
+input SessionFilterInput {
+  schemaName: String
+  status: SessionStatus
+  username: String
+}
+
+input TablespaceFilterInput {
+  name: String
+  minUsagePercentage: Float
+}
+
+input SqlPerformanceFilterInput {
+  schemaName: String
+  minElapsedMs: Float
+  minExecutions: Int
+  sortBy: SqlSortField
+}
+
+enum SqlSortField {
+  ELAPSED_TIME
+  CPU_TIME
+  EXECUTIONS
+  DISK_READS
+}
+
+input TimeRangeInput {
+  startTime: Time!
+  endTime: Time!
+}
+
+input AuditLogFilterInput {
+  userId: ID
+  action: String
+  resourceType: String
+  status: AuditStatus
+  timeRange: TimeRangeInput
+}
+
+# ============================================================================
+# CUSTOM SCALARS
+# ============================================================================
+
+scalar Time
+
+# ============================================================================
+# QUERIES
+# ============================================================================
+
+type Query {
+  # Authentication & User Management
+  me: User!
+  users: [User!]!
+  user(id: ID!): User
+  roles: [Role!]!
+  permissions: [Permission!]!
+  
+  # Oracle Session Monitoring
+  sessions(filter: SessionFilterInput): [OracleSession!]!
+  activeSessions(filter: SessionFilterInput): [OracleSession!]!
+  sessionSummary: SessionSummary!
+  session(sid: Int!): OracleSession
+  
+  # Lock & Blocking Detection
+  blockingSessions: [BlockingSession!]!
+  locks(schemaName: String): [LockInfo!]!
+  
+  # Tablespace Monitoring
+  tablespaces(filter: TablespaceFilterInput): [Tablespace!]!
+  tablespace(name: String!): Tablespace
+  tablespaceHistory(name: String!, timeRange: TimeRangeInput!): [TablespaceMetric!]!
+  tablespaceGrowth(name: String!, days: Int!): TablespaceGrowth
+  
+  # Query Performance
+  topSqlByElapsedTime(limit: Int!): [SqlPerformance!]!
+  topSqlByCpuTime(limit: Int!): [SqlPerformance!]!
+  topSqlByExecutions(limit: Int!): [SqlPerformance!]!
+  topSqlByDiskReads(limit: Int!): [SqlPerformance!]!
+  sqlPerformance(filter: SqlPerformanceFilterInput): [SqlPerformance!]!
+  sqlById(sqlId: String!): SqlPerformance
+  sqlHistory(sqlId: String!, timeRange: TimeRangeInput!): [SqlMetric!]!
+  
+  # Schema Monitoring
+  schemas: [SchemaInfo!]!
+  schemaInfo(name: String!): SchemaInfo
+  invalidObjects(schemaName: String): [InvalidObject!]!
+  recentSchemaChanges(schemaName: String, days: Int!): [SchemaChange!]!
+  
+  # Database Health
+  databaseInstance: DatabaseInstance!
+  databaseSize: DatabaseSize!
+  
+  # Audit Logs
+  auditLogs(filter: AuditLogFilterInput, limit: Int!, offset: Int!): [AuditLog!]!
+  auditLog(id: ID!): AuditLog
+}
+
+# ============================================================================
+# MUTATIONS
+# ============================================================================
+
+type Mutation {
+  # Authentication
+  login(input: LoginInput!): AuthPayload!
+  logout: Boolean!
+  
+  # User Management (Admin only)
+  createUser(input: CreateUserInput!): User!
+  updateUser(input: UpdateUserInput!): User!
+  deleteUser(userId: ID!): Boolean!
+  assignRole(userId: ID!, roleId: ID!): User!
+  revokeRole(userId: ID!, roleId: ID!): User!
+  
+  # Session Management (DBA only)
+  killSession(sid: Int!, serial: Int!): Boolean!
+}
+
+# ============================================================================
+# SUBSCRIPTIONS (Future Enhancement)
+# ============================================================================
+
+type Subscription {
+  # Real-time monitoring (future)
+  sessionAdded: OracleSession!
+  blockingDetected: BlockingSession!
+  tablespaceAlert(threshold: Float!): Tablespace!
+}
+
+# ============================================================================
+# SCHEMA DIRECTIVES (RBAC Enforcement)
+# ============================================================================
+
+directive @auth(requires: [String!]!) on FIELD_DEFINITION
+
+# ============================================================================
+# EXAMPLE USAGE WITH DIRECTIVES (Documentation)
+# ============================================================================
+
+# extend type Query {
+#   sessions: [OracleSession!]! @auth(requires: ["VIEW_SESSIONS"])
+#   blockingSessions: [BlockingSession!]! @auth(requires: ["VIEW_LOCKS"])
+#   createUser: User! @auth(requires: ["MANAGE_USERS"])
+# }
