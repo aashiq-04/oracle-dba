@@ -143,6 +143,10 @@ func (s *AuthService) CreateUser(ctx context.Context, username, email, password 
 	return user, nil
 }
 
+// GetUserByID gets a user by their ID
+func (s *AuthService) GetUserByID(ctx context.Context, userID uuid.UUID) (*repository.User, error) {
+	return s.userRepo.GetByID(ctx, userID)
+}
 // UpdateUser updates user information
 func (s *AuthService) UpdateUser(ctx context.Context, userID uuid.UUID, email string, isActive bool) error {
 	user, err := s.userRepo.GetByID(ctx, userID)

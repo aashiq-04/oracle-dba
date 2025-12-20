@@ -1,13 +1,13 @@
-
 package oracle
 
 import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 	"time"
 
-	_ "github.com/godror/godror"
+	go_ora "github.com/sijms/go-ora/v2"
 )
 
 // OracleDB wraps the Oracle connection pool
@@ -28,13 +28,16 @@ type OracleConfig struct {
 
 // NewOracleDB creates a new Oracle connection pool
 func NewOracleDB(cfg OracleConfig) (*OracleDB, error) {
-	// Oracle connection string format: username/password@host:port/service_name
-	dsn := fmt.Sprintf(
-		"%s/%s@%s:%s/%s",
-		cfg.Username, cfg.Password, cfg.Host, cfg.Port, cfg.ServiceName,
-	)
+	// Convert port string to int
+	portInt, err := strconv.Atoi(cfg.Port)
+	if err != nil {
+		return nil, fmt.Errorf("invalid port: %w", err)
+	}
 
-	db, err := sql.Open("godror", dsn)
+	// Pure Go Oracle driver connection string
+	dsn := go_ora.BuildUrl(cfg.Host, portInt, cfg.ServiceName, cfg.Username, cfg.Password, nil)
+
+	db, err := sql.Open("oracle", dsn)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open oracle connection: %w", err)
 	}
@@ -71,6 +74,8 @@ func (o *OracleDB) Stats() sql.DBStats {
 	return o.DB.Stats()
 }
 
+// Rest of the file remains the same (all the query constants)
+// ... (keep all the QueryActiveSessions, QueryBlockingSessions, etc.)
 // ============================================================================
 // ORACLE MONITORING QUERIES (CONSTANTS)
 // ============================================================================
