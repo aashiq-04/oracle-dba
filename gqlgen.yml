@@ -1,9 +1,9 @@
 schema:
-  - internal/graph/schema/*.graphqls
+  - internal/graph/schema/*.graphql
 
 exec:
-  filename: internal/graph/generated/generated.go
-  package: generated
+  filename: internal/graph/generated.go
+  package: graph
 
 model:
   filename: internal/graph/model/models_gen.go
@@ -13,7 +13,18 @@ resolver:
   layout: follow-schema
   dir: internal/graph
   package: graph
+  filename: resolver.go
 
-models:
-  Time:
-    model: time.Time
+# Optionally, you can also use single-file layout:
+# resolver:
+#   layout: single-file
+#   dir: internal/graph
+#   package: graph
+#   filename: resolver.go
+
+# Skip runtime if you don't need it
+# skip_runtime: true
+
+# Auto-bind models (optional)
+# autobind:
+#   - github.com/aashiq-04/oracle-dba/internal/graph/model

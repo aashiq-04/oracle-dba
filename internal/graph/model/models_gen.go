@@ -2,5 +2,520 @@
 
 package model
 
+import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
+	"time"
+)
+
+type AuditLog struct {
+	ID              string      `json:"id"`
+	UserID          *string     `json:"userId,omitempty"`
+	Username        string      `json:"username"`
+	Action          string      `json:"action"`
+	ResourceType    string      `json:"resourceType"`
+	ResourceID      *string     `json:"resourceId,omitempty"`
+	OracleSchema    *string     `json:"oracleSchema,omitempty"`
+	Status          AuditStatus `json:"status"`
+	IPAddress       *string     `json:"ipAddress,omitempty"`
+	UserAgent       *string     `json:"userAgent,omitempty"`
+	RequestPayload  *string     `json:"requestPayload,omitempty"`
+	ResponsePayload *string     `json:"responsePayload,omitempty"`
+	ErrorMessage    *string     `json:"errorMessage,omitempty"`
+	DurationMs      *int        `json:"durationMs,omitempty"`
+	Timestamp       time.Time   `json:"timestamp"`
+}
+
+type AuditLogFilterInput struct {
+	UserID       *string         `json:"userId,omitempty"`
+	Action       *string         `json:"action,omitempty"`
+	ResourceType *string         `json:"resourceType,omitempty"`
+	Status       *AuditStatus    `json:"status,omitempty"`
+	TimeRange    *TimeRangeInput `json:"timeRange,omitempty"`
+}
+
+type AuthPayload struct {
+	Token     string    `json:"token"`
+	User      *User     `json:"user"`
+	ExpiresAt time.Time `json:"expiresAt"`
+}
+
+type BlockingSession struct {
+	BlockingSid            int           `json:"blockingSid"`
+	BlockingSerial         int           `json:"blockingSerial"`
+	BlockingUser           *string       `json:"blockingUser,omitempty"`
+	BlockingSchema         *string       `json:"blockingSchema,omitempty"`
+	BlockingStatus         SessionStatus `json:"blockingStatus"`
+	BlockingSQLID          *string       `json:"blockingSqlId,omitempty"`
+	BlockingSQLText        *string       `json:"blockingSqlText,omitempty"`
+	BlockedSid             int           `json:"blockedSid"`
+	BlockedSerial          int           `json:"blockedSerial"`
+	BlockedUser            *string       `json:"blockedUser,omitempty"`
+	BlockedSchema          *string       `json:"blockedSchema,omitempty"`
+	BlockedWaitClass       *string       `json:"blockedWaitClass,omitempty"`
+	BlockedEvent           *string       `json:"blockedEvent,omitempty"`
+	BlockedDurationSeconds int           `json:"blockedDurationSeconds"`
+	BlockedSQLText         *string       `json:"blockedSqlText,omitempty"`
+}
+
+type CreateUserInput struct {
+	Username string   `json:"username"`
+	Email    string   `json:"email"`
+	Password string   `json:"password"`
+	FullName *string  `json:"fullName,omitempty"`
+	RoleIds  []string `json:"roleIds"`
+}
+
+type DatabaseInstance struct {
+	InstanceName   string    `json:"instanceName"`
+	HostName       string    `json:"hostName"`
+	Version        string    `json:"version"`
+	StartupTime    time.Time `json:"startupTime"`
+	Status         string    `json:"status"`
+	DatabaseStatus string    `json:"databaseStatus"`
+	InstanceRole   string    `json:"instanceRole"`
+	UptimeDays     float64   `json:"uptimeDays"`
+}
+
+type DatabaseSize struct {
+	TotalSizeGb     float64 `json:"totalSizeGb"`
+	UsedSizeGb      float64 `json:"usedSizeGb"`
+	FreeSizeGb      float64 `json:"freeSizeGb"`
+	UsagePercentage float64 `json:"usagePercentage"`
+}
+
+type InvalidObject struct {
+	Owner       string     `json:"owner"`
+	ObjectName  string     `json:"objectName"`
+	ObjectType  string     `json:"objectType"`
+	Status      string     `json:"status"`
+	LastDdlTime *time.Time `json:"lastDdlTime,omitempty"`
+	CreatedDate *time.Time `json:"createdDate,omitempty"`
+}
+
+type LockInfo struct {
+	Sid             int     `json:"sid"`
+	Serial          int     `json:"serial"`
+	Username        *string `json:"username,omitempty"`
+	SchemaName      *string `json:"schemaName,omitempty"`
+	LockType        string  `json:"lockType"`
+	LockMode        string  `json:"lockMode"`
+	LockRequest     *string `json:"lockRequest,omitempty"`
+	ObjectOwner     *string `json:"objectOwner,omitempty"`
+	ObjectName      *string `json:"objectName,omitempty"`
+	ObjectType      *string `json:"objectType,omitempty"`
+	BlockingSession *int    `json:"blockingSession,omitempty"`
+}
+
+type LoginInput struct {
+	Username string `json:"username"`
+	Password string `json:"password"`
+}
+
+type Mutation struct {
+}
+
+type OracleSession struct {
+	Sid             int           `json:"sid"`
+	Serial          int           `json:"serial"`
+	Username        *string       `json:"username,omitempty"`
+	SchemaName      *string       `json:"schemaName,omitempty"`
+	OsUser          *string       `json:"osUser,omitempty"`
+	Machine         *string       `json:"machine,omitempty"`
+	Program         *string       `json:"program,omitempty"`
+	Status          SessionStatus `json:"status"`
+	SQLID           *string       `json:"sqlId,omitempty"`
+	SQLText         *string       `json:"sqlText,omitempty"`
+	LogonTime       *time.Time    `json:"logonTime,omitempty"`
+	LastCallSeconds int           `json:"lastCallSeconds"`
+	BlockingSession *int          `json:"blockingSession,omitempty"`
+	WaitClass       *string       `json:"waitClass,omitempty"`
+	Event           *string       `json:"event,omitempty"`
+	SecondsInWait   *int          `json:"secondsInWait,omitempty"`
+}
+
+type Permission struct {
+	ID          string `json:"id"`
+	Code        string `json:"code"`
+	Description string `json:"description"`
+}
+
 type Query struct {
+}
+
+type Role struct {
+	ID          string        `json:"id"`
+	Name        string        `json:"name"`
+	Description string        `json:"description"`
+	Permissions []*Permission `json:"permissions"`
+}
+
+type SchemaChange struct {
+	Owner        string    `json:"owner"`
+	ObjectName   string    `json:"objectName"`
+	ObjectType   string    `json:"objectType"`
+	CreatedDate  time.Time `json:"createdDate"`
+	LastModified time.Time `json:"lastModified"`
+	Status       string    `json:"status"`
+}
+
+type SchemaInfo struct {
+	SchemaName     string `json:"schemaName"`
+	TotalObjects   int    `json:"totalObjects"`
+	TableCount     int    `json:"tableCount"`
+	IndexCount     int    `json:"indexCount"`
+	ViewCount      int    `json:"viewCount"`
+	ProcedureCount int    `json:"procedureCount"`
+	FunctionCount  int    `json:"functionCount"`
+	PackageCount   int    `json:"packageCount"`
+}
+
+type SessionFilterInput struct {
+	SchemaName *string        `json:"schemaName,omitempty"`
+	Status     *SessionStatus `json:"status,omitempty"`
+	Username   *string        `json:"username,omitempty"`
+}
+
+type SessionSummary struct {
+	TotalSessions    int                 `json:"totalSessions"`
+	ActiveSessions   int                 `json:"activeSessions"`
+	InactiveSessions int                 `json:"inactiveSessions"`
+	BlockedSessions  int                 `json:"blockedSessions"`
+	BySchema         []*SessionsBySchema `json:"bySchema"`
+}
+
+type SessionsBySchema struct {
+	SchemaName string `json:"schemaName"`
+	Total      int    `json:"total"`
+	Active     int    `json:"active"`
+	Inactive   int    `json:"inactive"`
+}
+
+type SQLMetric struct {
+	ID            string    `json:"id"`
+	SQLID         string    `json:"sqlId"`
+	SQLText       string    `json:"sqlText"`
+	SchemaName    *string   `json:"schemaName,omitempty"`
+	Executions    int       `json:"executions"`
+	ElapsedTimeMs float64   `json:"elapsedTimeMs"`
+	CPUTimeMs     float64   `json:"cpuTimeMs"`
+	DiskReads     int       `json:"diskReads"`
+	BufferGets    int       `json:"bufferGets"`
+	RowsProcessed int       `json:"rowsProcessed"`
+	CapturedAt    time.Time `json:"capturedAt"`
+}
+
+type SQLPerformance struct {
+	SQLID          string     `json:"sqlId"`
+	SQLText        string     `json:"sqlText"`
+	SchemaName     *string    `json:"schemaName,omitempty"`
+	ParsingSchema  *string    `json:"parsingSchema,omitempty"`
+	Executions     int        `json:"executions"`
+	ElapsedTimeMs  float64    `json:"elapsedTimeMs"`
+	AvgElapsedMs   float64    `json:"avgElapsedMs"`
+	CPUTimeMs      float64    `json:"cpuTimeMs"`
+	AvgCPUMs       float64    `json:"avgCpuMs"`
+	DiskReads      int        `json:"diskReads"`
+	BufferGets     int        `json:"bufferGets"`
+	RowsProcessed  int        `json:"rowsProcessed"`
+	FirstLoadTime  *time.Time `json:"firstLoadTime,omitempty"`
+	LastActiveTime *time.Time `json:"lastActiveTime,omitempty"`
+}
+
+type SQLPerformanceFilterInput struct {
+	SchemaName    *string       `json:"schemaName,omitempty"`
+	MinElapsedMs  *float64      `json:"minElapsedMs,omitempty"`
+	MinExecutions *int          `json:"minExecutions,omitempty"`
+	SortBy        *SQLSortField `json:"sortBy,omitempty"`
+}
+
+type Subscription struct {
+}
+
+type Tablespace struct {
+	Name            string             `json:"name"`
+	TotalSizeMb     float64            `json:"totalSizeMb"`
+	UsedSizeMb      float64            `json:"usedSizeMb"`
+	FreeSizeMb      float64            `json:"freeSizeMb"`
+	UsagePercentage float64            `json:"usagePercentage"`
+	Status          string             `json:"status"`
+	Contents        TablespaceContents `json:"contents"`
+	DatafileCount   int                `json:"datafileCount"`
+}
+
+type TablespaceFilterInput struct {
+	Name               *string  `json:"name,omitempty"`
+	MinUsagePercentage *float64 `json:"minUsagePercentage,omitempty"`
+}
+
+type TablespaceGrowth struct {
+	TablespaceName     string              `json:"tablespaceName"`
+	DataPoints         []*TablespaceMetric `json:"dataPoints"`
+	GrowthRateMbPerDay *float64            `json:"growthRateMbPerDay,omitempty"`
+}
+
+type TablespaceMetric struct {
+	ID              string    `json:"id"`
+	TablespaceName  string    `json:"tablespaceName"`
+	TotalSizeMb     float64   `json:"totalSizeMb"`
+	UsedSizeMb      float64   `json:"usedSizeMb"`
+	FreeSizeMb      float64   `json:"freeSizeMb"`
+	UsagePercentage float64   `json:"usagePercentage"`
+	CapturedAt      time.Time `json:"capturedAt"`
+}
+
+type TimeRangeInput struct {
+	StartTime time.Time `json:"startTime"`
+	EndTime   time.Time `json:"endTime"`
+}
+
+type UpdateUserInput struct {
+	UserID   string   `json:"userId"`
+	Email    *string  `json:"email,omitempty"`
+	FullName *string  `json:"fullName,omitempty"`
+	IsActive *bool    `json:"isActive,omitempty"`
+	RoleIds  []string `json:"roleIds,omitempty"`
+}
+
+type User struct {
+	ID        string     `json:"id"`
+	Username  string     `json:"username"`
+	Email     string     `json:"email"`
+	FullName  *string    `json:"fullName,omitempty"`
+	IsActive  bool       `json:"isActive"`
+	Roles     []*Role    `json:"roles"`
+	LastLogin *time.Time `json:"lastLogin,omitempty"`
+	CreatedAt time.Time  `json:"createdAt"`
+}
+
+type AuditStatus string
+
+const (
+	AuditStatusSuccess AuditStatus = "SUCCESS"
+	AuditStatusFailure AuditStatus = "FAILURE"
+	AuditStatusDenied  AuditStatus = "DENIED"
+)
+
+var AllAuditStatus = []AuditStatus{
+	AuditStatusSuccess,
+	AuditStatusFailure,
+	AuditStatusDenied,
+}
+
+func (e AuditStatus) IsValid() bool {
+	switch e {
+	case AuditStatusSuccess, AuditStatusFailure, AuditStatusDenied:
+		return true
+	}
+	return false
+}
+
+func (e AuditStatus) String() string {
+	return string(e)
+}
+
+func (e *AuditStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = AuditStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid AuditStatus", str)
+	}
+	return nil
+}
+
+func (e AuditStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *AuditStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e AuditStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type SessionStatus string
+
+const (
+	SessionStatusActive   SessionStatus = "ACTIVE"
+	SessionStatusInactive SessionStatus = "INACTIVE"
+	SessionStatusKilled   SessionStatus = "KILLED"
+)
+
+var AllSessionStatus = []SessionStatus{
+	SessionStatusActive,
+	SessionStatusInactive,
+	SessionStatusKilled,
+}
+
+func (e SessionStatus) IsValid() bool {
+	switch e {
+	case SessionStatusActive, SessionStatusInactive, SessionStatusKilled:
+		return true
+	}
+	return false
+}
+
+func (e SessionStatus) String() string {
+	return string(e)
+}
+
+func (e *SessionStatus) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SessionStatus(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SessionStatus", str)
+	}
+	return nil
+}
+
+func (e SessionStatus) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *SessionStatus) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e SessionStatus) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type SQLSortField string
+
+const (
+	SQLSortFieldElapsedTime SQLSortField = "ELAPSED_TIME"
+	SQLSortFieldCPUTime     SQLSortField = "CPU_TIME"
+	SQLSortFieldExecutions  SQLSortField = "EXECUTIONS"
+	SQLSortFieldDiskReads   SQLSortField = "DISK_READS"
+)
+
+var AllSQLSortField = []SQLSortField{
+	SQLSortFieldElapsedTime,
+	SQLSortFieldCPUTime,
+	SQLSortFieldExecutions,
+	SQLSortFieldDiskReads,
+}
+
+func (e SQLSortField) IsValid() bool {
+	switch e {
+	case SQLSortFieldElapsedTime, SQLSortFieldCPUTime, SQLSortFieldExecutions, SQLSortFieldDiskReads:
+		return true
+	}
+	return false
+}
+
+func (e SQLSortField) String() string {
+	return string(e)
+}
+
+func (e *SQLSortField) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = SQLSortField(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid SqlSortField", str)
+	}
+	return nil
+}
+
+func (e SQLSortField) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *SQLSortField) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e SQLSortField) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type TablespaceContents string
+
+const (
+	TablespaceContentsPermanent TablespaceContents = "PERMANENT"
+	TablespaceContentsTemporary TablespaceContents = "TEMPORARY"
+	TablespaceContentsUndo      TablespaceContents = "UNDO"
+)
+
+var AllTablespaceContents = []TablespaceContents{
+	TablespaceContentsPermanent,
+	TablespaceContentsTemporary,
+	TablespaceContentsUndo,
+}
+
+func (e TablespaceContents) IsValid() bool {
+	switch e {
+	case TablespaceContentsPermanent, TablespaceContentsTemporary, TablespaceContentsUndo:
+		return true
+	}
+	return false
+}
+
+func (e TablespaceContents) String() string {
+	return string(e)
+}
+
+func (e *TablespaceContents) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = TablespaceContents(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid TablespaceContents", str)
+	}
+	return nil
+}
+
+func (e TablespaceContents) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *TablespaceContents) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e TablespaceContents) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }
