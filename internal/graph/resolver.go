@@ -19,3 +19,4 @@ func NewResolver(
         oracleService: oracleService,
     }
 }
+
